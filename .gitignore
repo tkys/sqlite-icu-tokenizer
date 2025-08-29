@@ -1,0 +1,24 @@
+# Build artifacts
+*.so
+*.o
+*.dylib
+*.dll
+
+# Test artifacts
+*.db
+*.db-journal
+
+# OS files
+.DS_Store
+Thumbs.db
+*~
+
+# Editor files
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# SQLite archives (large files, can be downloaded)
+sqlite-amalgamation-*.zip
+sqlite-src-*.zip
