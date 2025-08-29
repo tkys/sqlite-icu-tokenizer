@@ -71,6 +71,7 @@ echo
 
 run_test_with_output "Basic Functionality" "test_basic.sql"
 run_test_with_output "Multi-language Support" "test_multilingual.sql"
+run_test_with_output "Locale Configuration" "test_locales.sql"
 run_test_with_output "Performance Test" "test_performance.sql"
 run_test_with_output "Edge Cases" "test_edge_cases.sql"
 

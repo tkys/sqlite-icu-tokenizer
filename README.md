@@ -47,7 +47,11 @@ sudo apt-get install build-essential libicu-dev sqlite3
 
 2. **Create a table** with ICU tokenizer:
    ```sql
+   -- Default (Japanese locale)
    CREATE VIRTUAL TABLE documents USING fts5(title, content, tokenize='icu');
+   
+   -- Specify locale explicitly
+   CREATE VIRTUAL TABLE documents_zh USING fts5(title, content, tokenize='icu zh');
    ```
 
 3. **Insert and search** multilingual content:
@@ -62,6 +66,37 @@ sudo apt-get install build-essential libicu-dev sqlite3
    -- Search in English
    SELECT * FROM documents WHERE documents MATCH 'English';
    ```
+
+## Locale Configuration
+
+The ICU tokenizer supports different locales for optimal language-specific tokenization:
+
+```sql
+-- Japanese (default)
+CREATE VIRTUAL TABLE docs_ja USING fts5(content, tokenize='icu');
+CREATE VIRTUAL TABLE docs_ja_explicit USING fts5(content, tokenize='icu ja');
+
+-- Chinese
+CREATE VIRTUAL TABLE docs_zh USING fts5(content, tokenize='icu zh');
+
+-- Korean  
+CREATE VIRTUAL TABLE docs_ko USING fts5(content, tokenize='icu ko');
+
+-- English
+CREATE VIRTUAL TABLE docs_en USING fts5(content, tokenize='icu en');
+
+-- Root locale (language-neutral)
+CREATE VIRTUAL TABLE docs_root USING fts5(content, tokenize='icu root');
+```
+
+### Supported Locales
+
+- `ja` - Japanese (default)
+- `zh` - Chinese (Simplified/Traditional)
+- `ko` - Korean
+- `en` - English
+- `root` - Language-neutral Unicode rules
+- Any valid ICU locale identifier (e.g., `en_US`, `zh_CN`, `ja_JP`)
 
 ## Examples
 

@@ -22,4 +22,13 @@ test-quick: $(TARGET)
 	@echo "Running quick test..."
 	@echo ".load ./$(TARGET) sqlite3_icufts5_init\nCREATE VIRTUAL TABLE test USING fts5(content, tokenize='icu');\nINSERT INTO test(content) VALUES ('これは日本語のテストです');\nSELECT * FROM test WHERE test MATCH '日本語';\n.quit" | sqlite3
 
-.PHONY: all clean test test-quick
+benchmark: $(TARGET)
+	cd tests && sqlite3 -init benchmark.sql
+
+install:
+	./install.sh install
+
+uninstall:
+	./install.sh uninstall
+
+.PHONY: all clean test test-quick benchmark install uninstall
