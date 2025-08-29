@@ -19,6 +19,13 @@ Thumbs.db
 .vscode/
 .idea/
 
-# SQLite archives (large files, can be downloaded)
+# SQLite source files (will be downloaded automatically)
 sqlite-amalgamation-*.zip
+sqlite-amalgamation-*/
 sqlite-src-*.zip
+sqlite-src-*/
+
+# Legacy test files (generated during development)
+test_absolute.sql
+test_basic.sql  
+test_comprehensive.sql

@@ -14,28 +14,65 @@ A SQLite FTS5 extension that provides International Components for Unicode (ICU)
 
 ### Prerequisites
 
+**Required tools:**
 - GCC compiler
-- SQLite 3.35+ with FTS5 support
+- Make build system  
+- wget (for downloading SQLite source)
+- unzip (for extracting archives)
 - ICU libraries (libicuuc, libicui18n)
-- Make (optional, for using Makefile)
+- SQLite 3.35+ with FTS5 support
 
-On Ubuntu/Debian:
+**Install on Ubuntu/Debian:**
 ```bash
-sudo apt-get install build-essential libicu-dev sqlite3
+sudo apt-get update
+sudo apt-get install build-essential libicu-dev sqlite3 wget unzip
+```
+
+**Install on CentOS/RHEL:**
+```bash
+sudo yum install gcc make libicu-devel sqlite wget unzip
+# or on newer versions:
+sudo dnf install gcc make libicu-devel sqlite wget unzip
+```
+
+**Install on macOS:**
+```bash
+# Using Homebrew
+brew install icu4c sqlite wget
+# You may need to set PKG_CONFIG_PATH
+export PKG_CONFIG_PATH="/usr/local/opt/icu4c/lib/pkgconfig:$PKG_CONFIG_PATH"
 ```
 
 ### Building
 
-1. **Clone or download** this repository
-2. **Build the extension**:
+1. **Clone this repository**:
+   ```bash
+   git clone https://github.com/tkys/sqlite-icu-tokenizer.git
+   cd sqlite-icu-tokenizer
+   ```
+
+2. **Download SQLite source** (one-time setup):
+   ```bash
+   # Option 1: Direct download
+   wget https://sqlite.org/2025/sqlite-amalgamation-3500400.zip
+   unzip sqlite-amalgamation-3500400.zip
+   
+   # Option 2: From SQLite website
+   # Visit https://sqlite.org/download.html
+   # Download sqlite-amalgamation-3500400.zip (2.7MB)
+   # Extract in project directory
+   ```
+
+3. **Build the extension**:
    ```bash
    make
    ```
-   Or manually:
+   
+   If SQLite source is missing, the build will show helpful download instructions.
+
+4. **Run tests** to verify everything works:
    ```bash
-   gcc -fPIC -shared -O2 -Wall -o fts5icu.so fts5icu.c \
-       -I./sqlite-amalgamation-3500400 -I. \
-       -DSQLITE_ENABLE_FTS5 -licuuc -licui18n
+   make test
    ```
 
 ### Usage
@@ -246,13 +283,27 @@ Contributions are welcome! Please ensure:
 3. New features include appropriate tests
 4. Documentation is updated
 
+## Developer Resources
+
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Guide for new contributors (beginner-friendly)
+- **[DEVELOPMENT.md](DEVELOPMENT.md)** - Advanced development topics and architecture
+- **GitHub Repository**: https://github.com/tkys/sqlite-icu-tokenizer
+
+### Quick Links for Developers
+
+- **New to C or SQLite extensions?** Start with [CONTRIBUTING.md](CONTRIBUTING.md)
+- **Want to add a new language?** See "Adding Support for a New Language" in [CONTRIBUTING.md](CONTRIBUTING.md)
+- **Performance optimization?** Check [DEVELOPMENT.md](DEVELOPMENT.md)
+- **Found a bug?** Create an [issue](https://github.com/tkys/sqlite-icu-tokenizer/issues)
+
 ## Support
 
 For issues and questions:
 
-1. Check the test cases for usage examples
-2. Review the technical specification in `PJ.md`
-3. Examine the source code for implementation details
+1. **New developers**: Read [CONTRIBUTING.md](CONTRIBUTING.md) first
+2. **Check examples**: Review test cases in `tests/` directory  
+3. **Technical details**: See `PJ.md` for project specification
+4. **Advanced topics**: Consult [DEVELOPMENT.md](DEVELOPMENT.md)
 
 ## Acknowledgments
 
