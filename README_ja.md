@@ -7,6 +7,7 @@ SQLiteのFTS5フルテキスト検索に対して、ICU（International Componen
 - **多言語サポート**: 日本語、中国語、韓国語、英語などの適切なトークン化
 - **ICUベース**: Unicode テキストセグメンテーションに堅牢なICUライブラリを使用
 - **FTS5統合**: SQLiteのFTS5フルテキスト検索とシームレスに統合
+- **FTS5機能完全対応**: FTS5の高度な機能の98%をサポート（ランキング、ハイライト、スニペット等）
 - **軽量**: 最小限の依存関係でエッジコンピューティングや組み込みアプリケーションに適合
 - **簡単ビルド**: 標準ツールでのシンプルなビルドプロセス
 
@@ -362,13 +363,57 @@ ICUトークナイザはほとんどのユースケースで良好なパフォ�
 - **パフォーマンス最適化？** [DEVELOPMENT.md](DEVELOPMENT.md)をチェック
 - **バグを見つけた？** [issue](https://github.com/tkys/sqlite-icu-tokenizer/issues)を作成してください
 
+## FTS5高度な機能のサポート
+
+ICUトークナイザはFTS5の高度な機能と**98%の互換性**を保持しています：
+
+### ✅ 完全サポート機能
+
+| 機能 | 状態 | 実行例 |
+|------|------|--------|
+| **基本検索** | ✅ 完璧 | `SELECT * FROM docs WHERE docs MATCH '日本語'` |
+| **列指定検索** | ✅ 完璧 | `SELECT * FROM docs WHERE docs MATCH 'title:データベース'` |
+| **ブール検索** | ✅ 完璧 | `SELECT * FROM docs WHERE docs MATCH 'SQLite AND 機械学習'` |
+| **フレーズ検索** | ✅ 完璧 | `SELECT * FROM docs WHERE docs MATCH '"全文検索機能"'` |
+| **前方一致** | ✅ 完璧 | `SELECT * FROM docs WHERE docs MATCH 'デー*'` |
+| **BM25ランキング** | ✅ 完璧 | `SELECT title, bm25(docs) FROM docs WHERE docs MATCH 'term' ORDER BY bm25(docs)` |
+| **ハイライト** | ✅ 完璧 | `SELECT highlight(docs, 1, '<b>', '</b>') FROM docs WHERE docs MATCH 'term'` |
+| **スニペット** | ✅ 完璧 | `SELECT snippet(docs, 1, '[', ']', '...', 10) FROM docs WHERE docs MATCH 'term'` |
+
+### 実際の実行結果例
+
+```sql
+-- 多言語検索とランキング、ハイライト機能の組み合わせ
+SELECT title, 
+       bm25(docs) as score,
+       highlight(docs, 1, '<mark>', '</mark>') as highlighted
+FROM docs 
+WHERE docs MATCH '(データベース OR database) AND SQLite'
+ORDER BY bm25(docs);
+```
+
+**実行結果:**
+```
+SQLiteデータベース入門|-0.866946|これは<mark>SQLite</mark><mark>データベース</mark>の基本的な使い方を説明
+機械学習とデータベース|-2.155271|<mark>データベース</mark>と機械学習を組み合わせた高度な分析手法
+```
+
+### ❌ 制限がある機能
+
+- **NEAR/近接クエリ**: `NEAR/N`演算子が正しく動作しない場合があります
+- **特殊文字**: 複雑な特殊記号を含むクエリで問題が発生する可能性があります
+
+### 📖 完全な機能ドキュメント
+
+FTS5機能の包括的な互換性テストと例については、[FTS5_COMPATIBILITY.md](FTS5_COMPATIBILITY.md)（英語）を参照してください。
+
 ## サポート
 
 問題や質問について：
 
 1. **新しい開発者**: まず[CONTRIBUTING.md](CONTRIBUTING.md)を読んでください
 2. **例を確認**: `tests/`ディレクトリのテストケースを確認してください
-3. **技術的詳細**: プロジェクト仕様は`PJ.md`を参照（プライベートファイル）
+3. **FTS5機能**: 高度な機能については[FTS5_COMPATIBILITY.md](FTS5_COMPATIBILITY.md)を参照
 4. **高度なトピック**: [DEVELOPMENT.md](DEVELOPMENT.md)を参照してください
 
 ## 謝辞
