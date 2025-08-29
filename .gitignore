@@ -29,3 +29,7 @@ sqlite-src-*/
 test_absolute.sql
 test_basic.sql  
 test_comprehensive.sql
+
+# Private project notes (development specs, not for public)
+PJ.md
+demo_tokenization.sql

@@ -104,6 +104,73 @@ export PKG_CONFIG_PATH="/usr/local/opt/icu4c/lib/pkgconfig:$PKG_CONFIG_PATH"
    SELECT * FROM documents WHERE documents MATCH 'English';
    ```
 
+## Why Use ICU Tokenizer?
+
+### Comparison with Other Tokenizers
+
+The ICU tokenizer provides significant advantages over SQLite's default tokenizers for CJK languages:
+
+| Feature | unicode61 (default) | porter | **icu** |
+|---------|---------------------|---------|---------|
+| **Japanese Support** | ❌ Poor | ❌ Poor | ✅ **Excellent** |
+| **Chinese Support** | ❌ Poor | ❌ Poor | ✅ **Excellent** |
+| **Korean Support** | ❌ Poor | ❌ Poor | ✅ **Excellent** |
+| **English Support** | ✅ Good | ✅ Good | ✅ **Good** |
+| **Word Boundary Detection** | Space-based only | Space-based only | ✅ **Language-aware** |
+| **Configurable Locales** | ❌ No | ❌ No | ✅ **Yes** |
+
+### Tokenization Examples
+
+Here's how different tokenizers handle the same text:
+
+#### Japanese Text: "これは日本語のテストです"
+
+**unicode61 tokenizer:**
+```
+Input:  "これは日本語のテストです"
+Tokens: ["これは日本語のテストです"]  ← Entire string as ONE token!
+Result: Search for "日本語" returns 0 results ❌
+```
+
+**ICU tokenizer:**
+```
+Input:  "これは日本語のテストです"  
+Tokens: ["これ", "は", "日本語", "の", "テスト", "です"]
+Result: Search for "日本語" returns 1 result ✅
+```
+
+#### Chinese Text: "这是中文测试内容"
+
+**unicode61 tokenizer:**
+```
+Input:  "这是中文测试内容"
+Tokens: ["这是中文测试内容"]  ← Single token, no word separation
+Result: Search for "中文" returns 0 results ❌
+```
+
+**ICU tokenizer:**
+```
+Input:  "这是中文测试内容"
+Tokens: ["这", "是", "中文", "测试", "内容"]
+Result: Search for "中文" returns 1 result ✅
+```
+
+#### Mixed Language Text: "SQLite supports 日本語 search"
+
+**unicode61 tokenizer:**
+```
+Input:  "SQLite supports 日本語 search"
+Tokens: ["sqlite", "supports", "日本語", "search"]
+Result: Only English words are properly separated
+```
+
+**ICU tokenizer:**
+```
+Input:  "SQLite supports 日本語 search"  
+Tokens: ["SQLite", "supports", "日本", "語", "search"]
+Result: Both English and Japanese are properly tokenized ✅
+```
+
 ## Locale Configuration
 
 The ICU tokenizer supports different locales for optimal language-specific tokenization:
@@ -136,6 +203,45 @@ CREATE VIRTUAL TABLE docs_root USING fts5(content, tokenize='icu root');
 - Any valid ICU locale identifier (e.g., `en_US`, `zh_CN`, `ja_JP`)
 
 ## Examples
+
+### Tokenization Demonstration
+
+You can see exactly how text gets tokenized using SQLite's built-in functions:
+
+```sql
+-- Load the ICU tokenizer
+.load ./fts5icu.so sqlite3_icufts5_init
+
+-- Create tables for comparison
+CREATE VIRTUAL TABLE test_unicode61 USING fts5(content, tokenize='unicode61');
+CREATE VIRTUAL TABLE test_icu USING fts5(content, tokenize='icu');
+
+-- Insert the same Japanese text into both tables
+INSERT INTO test_unicode61(content) VALUES ('これは日本語のテストです');
+INSERT INTO test_icu(content) VALUES ('これは日本語のテストです');
+
+-- View how each tokenizer splits the text
+-- Note: This shows the internal token representation
+SELECT 'unicode61' as tokenizer, * FROM test_unicode61('これは日本語のテストです');
+SELECT 'icu' as tokenizer, * FROM test_icu('これは日本語のテストです');
+
+-- Test actual search capability
+SELECT 'unicode61 search for 日本語:' as test;
+SELECT content FROM test_unicode61 WHERE test_unicode61 MATCH '日本語';
+
+SELECT 'ICU search for 日本語:' as test;  
+SELECT content FROM test_icu WHERE test_icu MATCH '日本語';
+```
+
+**Expected Output:**
+```
+unicode61 search for 日本語:
+(no results - because "日本語" is part of longer token)
+
+ICU search for 日本語:
+これは日本語のテストです
+(found - because "日本語" is a separate token)
+```
 
 ### Multi-language Search
 ```sql
