@@ -13,6 +13,18 @@ NC='\033[0m' # No Color
 echo -e "${BLUE}SQLite ICU Tokenizer Extension Test Suite${NC}"
 echo "=================================================="
 
+# Set up Homebrew SQLite path for macOS if available
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    if [ -d "/opt/homebrew/opt/sqlite" ]; then
+        export PATH="/opt/homebrew/opt/sqlite/bin:$PATH"
+        echo "Using Homebrew SQLite: $(which sqlite3)"
+    elif [ -d "/usr/local/opt/sqlite" ]; then
+        export PATH="/usr/local/opt/sqlite/bin:$PATH"
+        echo "Using Homebrew SQLite: $(which sqlite3)"
+    fi
+    echo "SQLite version: $(sqlite3 --version)"
+fi
+
 # Check if extension exists (platform-specific)
 EXTENSION_FILE=""
 if [ -f "../fts5icu.dylib" ]; then

@@ -170,6 +170,21 @@ install_dependencies() {
                 export CPPFLAGS="-I$icu_prefix/include $CPPFLAGS"
                 print_info "ICU configured at: $icu_prefix"
             fi
+            
+            # Set up Homebrew SQLite path for macOS (required for extension loading)
+            local sqlite_prefix
+            if [ -d "/opt/homebrew/opt/sqlite" ]; then
+                # Apple Silicon path
+                sqlite_prefix="/opt/homebrew/opt/sqlite"
+            elif [ -d "/usr/local/opt/sqlite" ]; then
+                # Intel Mac path
+                sqlite_prefix="/usr/local/opt/sqlite"
+            fi
+            
+            if [ -n "$sqlite_prefix" ]; then
+                export PATH="$sqlite_prefix/bin:$PATH"
+                print_info "SQLite configured at: $sqlite_prefix"
+            fi
             ;;
         *)
             print_error "Unsupported OS: $OS"
