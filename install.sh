@@ -36,6 +36,23 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
+# Function to compare version numbers (returns 0 if version1 >= version2)
+version_compare() {
+    local version1="$1"
+    local version2="$2"
+    
+    # Remove any non-numeric suffixes
+    version1=$(echo "$version1" | sed 's/[^0-9.].*//')
+    version2=$(echo "$version2" | sed 's/[^0-9.].*//')
+    
+    # Use sort -V to compare versions
+    if printf '%s\n' "$version2" "$version1" | sort -V -C 2>/dev/null; then
+        return 0  # version1 >= version2
+    else
+        return 1  # version1 < version2
+    fi
+}
+
 # Function to detect OS and package manager
 detect_os() {
     if [ -f /etc/os-release ]; then
@@ -169,6 +186,16 @@ check_dependencies() {
     
     if ! command_exists sqlite3; then
         missing_deps+=("sqlite3")
+    else
+        # Check SQLite version for FTS5 support
+        local sqlite_version
+        sqlite_version=$(sqlite3 --version | cut -d' ' -f1)
+        local required_version="3.35.0"
+        
+        if ! version_compare "$sqlite_version" "$required_version"; then
+            print_warning "SQLite version $sqlite_version found, but $required_version+ required for FTS5"
+            print_info "Consider upgrading SQLite or the extension may not work properly"
+        fi
     fi
     
     # Check ICU libraries
@@ -220,11 +247,34 @@ build_extension() {
         return 1
     fi
     
-    # Clean and build
+    # Check if already built and skip if possible
+    if [ -f "fts5icu.so" ] && [ -f "fts5icu.c" ]; then
+        if [ "fts5icu.so" -nt "fts5icu.c" ]; then
+            print_info "Extension already built and up-to-date"
+            return 0
+        fi
+    fi
+    
+    # Clean and build with parallel jobs
     make clean >/dev/null 2>&1 || true
-    if ! make; then
-        print_error "Build failed"
-        return 1
+    
+    # Detect number of CPU cores for parallel build
+    local jobs=1
+    if command_exists nproc; then
+        jobs=$(nproc)
+    elif command_exists sysctl; then
+        jobs=$(sysctl -n hw.ncpu 2>/dev/null || echo "1")
+    fi
+    
+    print_info "Building with $jobs parallel jobs..."
+    
+    if ! make -j"$jobs"; then
+        print_warning "Parallel build failed, trying single-threaded build..."
+        make clean >/dev/null 2>&1 || true
+        if ! make; then
+            print_error "Build failed"
+            return 1
+        fi
     fi
     
     if [ ! -f "fts5icu.so" ]; then

@@ -220,6 +220,21 @@ Each example includes:
 - ✅ Performance optimization techniques
 - ✅ Reusable API components for real applications
 
+## 🔧 Troubleshooting
+
+Having issues? Check our comprehensive **[Troubleshooting Guide](TROUBLESHOOTING.md)** covering:
+
+- ICU version compatibility issues
+- SQLite extension loading problems  
+- Build and compilation errors
+- Runtime and performance issues
+- Platform-specific solutions
+
+Common quick fixes:
+- **ICU compatibility**: Use local build instead of pre-built binaries
+- **Extension loading**: Remove `.so` extension from filename
+- **Missing dependencies**: Run the automated installer
+
 ## Why Use ICU Tokenizer?
 
 ### Comparison with Other Tokenizers
