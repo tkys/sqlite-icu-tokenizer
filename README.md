@@ -142,6 +142,70 @@ export PKG_CONFIG_PATH="/usr/local/opt/icu4c/lib/pkgconfig:$PKG_CONFIG_PATH"
    SELECT * FROM documents WHERE documents MATCH 'English';
    ```
 
+## Programming Language Integration
+
+The extension works seamlessly with SQLite drivers in different programming languages. **Extension loading methods vary by language**:
+
+### Python
+```python
+import sqlite3
+conn = sqlite3.connect('database.db')
+conn.enable_load_extension(True)
+conn.load_extension('./fts5icu-linux-x86_64.so')  # Platform-specific binary
+```
+
+### Node.js
+```javascript
+const Database = require('better-sqlite3');
+const db = new Database('database.db');
+db.loadExtension('./fts5icu-linux-x86_64.so');
+```
+
+### Rust
+```rust
+use rusqlite::Connection;
+let conn = Connection::open("database.db")?;
+unsafe {
+    conn.load_extension_enable();
+    conn.load_extension("./fts5icu-linux-x86_64.so", None)?;
+}
+```
+
+### Go
+```go
+import _ "modernc.org/sqlite"
+db, _ := sql.Open("sqlite", "database.db")
+db.Exec("SELECT load_extension('./fts5icu-linux-x86_64.so')")
+```
+
+### C#
+```csharp
+using Microsoft.Data.Sqlite;
+var connection = new SqliteConnection("Data Source=database.db");
+connection.Open();
+var command = connection.CreateCommand();
+command.CommandText = "SELECT load_extension('./fts5icu-win32-x86_64.dll')";
+command.ExecuteNonQuery();
+```
+
+### 📁 Complete Examples
+
+For complete, runnable examples with error handling, platform detection, and advanced features, see the [`examples/`](examples/) directory:
+
+- **[`python_example.py`](examples/python_example.py)** - Comprehensive Python integration
+- **[`nodejs_example.js`](examples/nodejs_example.js)** - Node.js with better-sqlite3
+- **[`rust_example.rs`](examples/rust_example.rs)** - Memory-safe Rust implementation
+- **[`go_example.go`](examples/go_example.go)** - Concurrent Go applications
+- **[`csharp_example.cs`](examples/csharp_example.cs)** - .NET integration
+
+Each example includes:
+- ✅ Automatic platform-specific binary detection
+- ✅ Proper error handling and resource cleanup
+- ✅ Multilingual search demonstrations
+- ✅ Advanced FTS5 features (BM25, highlight, snippet)
+- ✅ Performance optimization techniques
+- ✅ Reusable API components for real applications
+
 ## Why Use ICU Tokenizer?
 
 ### Comparison with Other Tokenizers

@@ -28,7 +28,15 @@
       "Bash(./install.sh:*)",
       "Bash(gh repo view:*)",
       "WebFetch(domain:sqlite.org)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(python3:*)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "Bash(git tag:*)",
+      "Bash(gh run list:*)",
+      "Bash(gh run view:*)",
+      "Bash(git rm:*)",
+      "WebFetch(domain:www.sqlite.org)"
     ],
     "deny": [],
     "ask": []
