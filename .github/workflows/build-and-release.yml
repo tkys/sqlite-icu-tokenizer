@@ -180,7 +180,7 @@ jobs:
         REM Use MSVC compiler with correct ICU library names
         cl.exe /LD /O2 /I".\sqlite-amalgamation-3500400" /I"%INCLUDE_DIR%" ^
           /DSQLITE_ENABLE_FTS5 /DSQLITE_API= /DSQLITE_EXTERN= ^
-          fts5icu.c "%LIB_DIR%\icuuc77.lib" "%LIB_DIR%\icuin77.lib" ^
+          fts5icu.c "%LIB_DIR%\icuuc.lib" "%LIB_DIR%\icuin.lib" ^
           /Fefts5icu.dll
         
         set OUTPUT_NAME=fts5icu-${{ matrix.platform }}-${{ matrix.arch }}.${{ matrix.extension }}
