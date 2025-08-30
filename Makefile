@@ -4,11 +4,32 @@ CFLAGS = -fPIC -shared -O2 -Wall
 SQLITE_VERSION = 3500400
 SQLITE_AMALGAMATION = sqlite-amalgamation-$(SQLITE_VERSION)
 SQLITE_URL = https://sqlite.org/2025/$(SQLITE_AMALGAMATION).zip
-INCLUDES = -I./$(SQLITE_AMALGAMATION) -I.
+
+# Use pkg-config to get ICU flags if available
+ICU_CFLAGS := $(shell pkg-config --cflags icu-uc icu-i18n 2>/dev/null)
+ICU_LIBS := $(shell pkg-config --libs icu-uc icu-i18n 2>/dev/null)
+
+# Fallback to default flags if pkg-config fails
+ifeq ($(ICU_CFLAGS),)
+ICU_CFLAGS = -I/usr/include
+endif
+ifeq ($(ICU_LIBS),)
+ICU_LIBS = -licuuc -licui18n
+endif
+
+INCLUDES = -I./$(SQLITE_AMALGAMATION) -I. $(ICU_CFLAGS)
 DEFINES = -DSQLITE_ENABLE_FTS5
-LIBS = -licuuc -licui18n
+LIBS = $(ICU_LIBS)
 SOURCE = fts5icu.c
-TARGET = fts5icu.so
+
+# Platform-specific target extension
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+    TARGET = fts5icu.dylib
+    CFLAGS += -dynamiclib
+else
+    TARGET = fts5icu.so
+endif
 
 all: $(TARGET)
 
@@ -34,7 +55,7 @@ $(TARGET): $(SOURCE) $(SQLITE_AMALGAMATION)/sqlite3.h
 	$(CC) $(CFLAGS) -o $@ $(SOURCE) $(INCLUDES) $(DEFINES) $(LIBS)
 
 clean:
-	rm -f $(TARGET) fts5icu_*.so
+	rm -f $(TARGET) fts5icu.so fts5icu.dylib fts5icu_*
 
 clean-all: clean
 	rm -rf $(SQLITE_AMALGAMATION) $(SQLITE_AMALGAMATION).zip

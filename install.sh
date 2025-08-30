@@ -271,9 +271,16 @@ build_extension() {
         return 1
     fi
     
-    # Check if already built and skip if possible
-    if [ -f "fts5icu.so" ] && [ -f "fts5icu.c" ]; then
-        if [ "fts5icu.so" -nt "fts5icu.c" ]; then
+    # Check if already built and skip if possible (platform-specific extension)
+    local extension_file=""
+    if [ "$OS" = "darwin" ]; then
+        extension_file="fts5icu.dylib"
+    else
+        extension_file="fts5icu.so"
+    fi
+    
+    if [ -f "$extension_file" ] && [ -f "fts5icu.c" ]; then
+        if [ "$extension_file" -nt "fts5icu.c" ]; then
             print_info "Extension already built and up-to-date"
             return 0
         fi
@@ -301,7 +308,7 @@ build_extension() {
         fi
     fi
     
-    if [ ! -f "fts5icu.so" ]; then
+    if [ ! -f "$extension_file" ]; then
         print_error "Extension library not found after build"
         return 1
     fi
@@ -327,6 +334,17 @@ run_tests() {
 install_extension() {
     print_info "Installing extension to $INSTALL_DIR..."
     
+    # Determine extension file based on platform
+    local extension_file=""
+    local extension_name=""
+    if [ "$OS" = "darwin" ]; then
+        extension_file="fts5icu.dylib"
+        extension_name="fts5icu.dylib"
+    else
+        extension_file="fts5icu.so"
+        extension_name="fts5icu.so"
+    fi
+    
     # Create installation directory if it doesn't exist
     if [ ! -d "$INSTALL_DIR" ]; then
         print_info "Creating installation directory: $INSTALL_DIR"
@@ -334,15 +352,15 @@ install_extension() {
     fi
     
     # Copy the extension library
-    sudo cp fts5icu.so "$INSTALL_DIR/"
-    sudo chmod 755 "$INSTALL_DIR/fts5icu.so"
+    sudo cp "$extension_file" "$INSTALL_DIR/"
+    sudo chmod 755 "$INSTALL_DIR/$extension_name"
     
-    # Update library cache
-    if command_exists ldconfig; then
+    # Update library cache (Linux only)
+    if command_exists ldconfig && [ "$OS" != "darwin" ]; then
         sudo ldconfig
     fi
     
-    print_success "Extension installed to $INSTALL_DIR/fts5icu.so"
+    print_success "Extension installed to $INSTALL_DIR/$extension_name"
 }
 
 # Function to create a wrapper script
@@ -379,9 +397,17 @@ EOF
 verify_installation() {
     print_info "Verifying installation..."
     
+    # Determine extension name based on platform
+    local extension_name=""
+    if [ "$OS" = "darwin" ]; then
+        extension_name="fts5icu.dylib"
+    else
+        extension_name="fts5icu.so"
+    fi
+    
     # Test loading the extension
     local test_result
-    test_result=$(echo ".load $INSTALL_DIR/fts5icu.so sqlite3_icufts5_init
+    test_result=$(echo ".load $INSTALL_DIR/$extension_name sqlite3_icufts5_init
 CREATE VIRTUAL TABLE test USING fts5(content, tokenize='icu');
 INSERT INTO test(content) VALUES ('テスト');
 SELECT * FROM test WHERE test MATCH 'テスト';
@@ -400,10 +426,18 @@ SELECT * FROM test WHERE test MATCH 'テスト';
 show_usage() {
     print_success "Installation completed successfully!"
     echo ""
+    # Determine extension name for usage examples
+    local extension_name=""
+    if [ "$OS" = "darwin" ]; then
+        extension_name="fts5icu.dylib"
+    else
+        extension_name="fts5icu.so"
+    fi
+    
     echo "Usage:"
     echo "1. Load extension in SQLite:"
     echo "   sqlite3"
-    echo "   .load $INSTALL_DIR/fts5icu.so sqlite3_icufts5_init"
+    echo "   .load $INSTALL_DIR/$extension_name sqlite3_icufts5_init"
     echo ""
     echo "2. Use the wrapper script (recommended):"
     echo "   sqlite3-icu"
@@ -420,10 +454,15 @@ show_usage() {
 uninstall() {
     print_info "Uninstalling SQLite ICU tokenizer extension..."
     
-    # Remove extension library
+    # Remove extension library (both .so and .dylib)
     if [ -f "$INSTALL_DIR/fts5icu.so" ]; then
         sudo rm -f "$INSTALL_DIR/fts5icu.so"
-        print_success "Extension library removed"
+        print_success "Extension library (.so) removed"
+    fi
+    
+    if [ -f "$INSTALL_DIR/fts5icu.dylib" ]; then
+        sudo rm -f "$INSTALL_DIR/fts5icu.dylib"
+        print_success "Extension library (.dylib) removed"
     fi
     
     # Remove wrapper script
@@ -462,7 +501,15 @@ main() {
             ;;
         test)
             check_dependencies || exit 1
-            if [ ! -f "fts5icu.so" ]; then
+            # Determine extension file based on platform for test
+            local extension_file=""
+            if [ "$OS" = "darwin" ]; then
+                extension_file="fts5icu.dylib"
+            else
+                extension_file="fts5icu.so"
+            fi
+            
+            if [ ! -f "$extension_file" ]; then
                 build_extension || exit 1
             fi
             run_tests
