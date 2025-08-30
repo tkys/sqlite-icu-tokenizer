@@ -134,18 +134,42 @@ install_dependencies() {
                 echo "  /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
                 return 1
             fi
+            
+            # Install dependencies
+            local brew_packages=()
             case "${missing_deps[*]}" in
-                *gcc*) brew install gcc ;;
+                *gcc*) brew_packages+=(gcc) ;;
             esac
             case "${missing_deps[*]}" in
-                *libicu-dev*) brew install icu4c ;;
+                *libicu-dev*) brew_packages+=(icu4c) ;;
             esac
             case "${missing_deps[*]}" in
-                *sqlite3*) brew install sqlite ;;
+                *sqlite3*) brew_packages+=(sqlite) ;;
             esac
             case "${missing_deps[*]}" in
-                *pkg-config*) brew install pkg-config ;;
+                *pkg-config*) brew_packages+=(pkg-config) ;;
             esac
+            
+            if [ ${#brew_packages[@]} -gt 0 ]; then
+                brew install "${brew_packages[@]}"
+            fi
+            
+            # Set up ICU environment for macOS (both Intel and Apple Silicon)
+            local icu_prefix
+            if [ -d "/opt/homebrew/opt/icu4c" ]; then
+                # Apple Silicon path
+                icu_prefix="/opt/homebrew/opt/icu4c"
+            elif [ -d "/usr/local/opt/icu4c" ]; then
+                # Intel Mac path
+                icu_prefix="/usr/local/opt/icu4c"
+            fi
+            
+            if [ -n "$icu_prefix" ]; then
+                export PKG_CONFIG_PATH="$icu_prefix/lib/pkgconfig:$PKG_CONFIG_PATH"
+                export LDFLAGS="-L$icu_prefix/lib $LDFLAGS"
+                export CPPFLAGS="-I$icu_prefix/include $CPPFLAGS"
+                print_info "ICU configured at: $icu_prefix"
+            fi
             ;;
         *)
             print_error "Unsupported OS: $OS"
