@@ -242,55 +242,35 @@ jobs:
         cat checksums.txt
 
     - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
+      run: |
+        # Create release with GitHub CLI
+        gh release create ${{ github.ref_name }} \
+          --title "SQLite ICU Tokenizer ${{ github.ref_name }}" \
+          --notes "## SQLite ICU Tokenizer Extension ${{ github.ref_name }}
+          
+        Pre-built binaries for multiple platforms:
+        
+        - **Linux x86_64**: \`fts5icu-linux-x86_64.so\`
+        - **macOS ARM64**: \`fts5icu-darwin-arm64.dylib\` (Apple Silicon)
+        - **Windows x86_64**: \`fts5icu-win32-x86_64.dll\`
+        
+        ### Installation
+        
+        1. Download the appropriate binary for your platform
+        2. Load in SQLite: \`.load ./fts5icu-[platform] sqlite3_icufts5_init\`
+        3. Create FTS5 table: \`CREATE VIRTUAL TABLE docs USING fts5(content, tokenize='icu');\`
+        
+        ### Checksums
+        
+        See \`checksums.txt\` for file verification.
+        
+        ### Requirements
+        
+        - SQLite 3.35+ with FTS5 support
+        - ICU libraries installed on target system" \
+          release-assets/*
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref_name }}
-        release_name: SQLite ICU Tokenizer ${{ github.ref_name }}
-        body: |
-          ## SQLite ICU Tokenizer Extension ${{ github.ref_name }}
-          
-          Pre-built binaries for multiple platforms:
-          
-          - **Linux x86_64**: `fts5icu-linux-x86_64.so`
-          - **macOS x86_64**: `fts5icu-darwin-x86_64.dylib`
-          - **macOS ARM64**: `fts5icu-darwin-arm64.dylib` (Apple Silicon)
-          - **Windows x86_64**: `fts5icu-win32-x86_64.dll`
-          
-          ### Installation
-          
-          1. Download the appropriate binary for your platform
-          2. Load in SQLite: `.load ./fts5icu-[platform] sqlite3_icufts5_init`
-          3. Create FTS5 table: `CREATE VIRTUAL TABLE docs USING fts5(content, tokenize='icu');`
-          
-          ### Checksums
-          
-          See `checksums.txt` for file verification.
-          
-          ### Requirements
-          
-          - SQLite 3.35+ with FTS5 support
-          - ICU libraries installed on target system
-          
-        draft: false
-        prerelease: false
-
-    - name: Upload Release Assets
-      run: |
-        upload_url=$(echo "${{ steps.create_release.outputs.upload_url }}" | sed 's/{?name,label}//')
-        
-        for file in release-assets/*; do
-          filename=$(basename "$file")
-          echo "Uploading $filename..."
-          curl \
-            -X POST \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Content-Type: application/octet-stream" \
-            --data-binary "@$file" \
-            "${upload_url}?name=${filename}"
-        done
 
   test-binaries:
     name: Test Released Binaries
