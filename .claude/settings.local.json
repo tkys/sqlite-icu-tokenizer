@@ -37,7 +37,9 @@
       "Bash(gh run view:*)",
       "Bash(git rm:*)",
       "WebFetch(domain:www.sqlite.org)",
-      "Bash(gh workflow run:*)"
+      "Bash(gh workflow run:*)",
+      "Bash(gh release list:*)",
+      "Bash(gh release view:*)"
     ],
     "deny": [],
     "ask": []

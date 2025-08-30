@@ -36,14 +36,126 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
+# Function to detect OS and package manager
+detect_os() {
+    if [ -f /etc/os-release ]; then
+        . /etc/os-release
+        OS=$ID
+        VER=$VERSION_ID
+    elif command_exists lsb_release; then
+        OS=$(lsb_release -si | tr '[:upper:]' '[:lower:]')
+        VER=$(lsb_release -sr)
+    elif [ -f /etc/redhat-release ]; then
+        OS="redhat"
+    elif [ -f /etc/debian_version ]; then
+        OS="debian"
+    else
+        OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+    fi
+    
+    print_info "Detected OS: $OS $VER"
+}
+
+# Function to install dependencies automatically
+install_dependencies() {
+    local missing_deps=("$@")
+    
+    print_info "Installing missing dependencies: ${missing_deps[*]}"
+    
+    case "$OS" in
+        ubuntu|debian)
+            sudo apt-get update -qq
+            case "${missing_deps[*]}" in
+                *gcc*) sudo apt-get install -y build-essential ;;
+            esac
+            case "${missing_deps[*]}" in
+                *libicu-dev*) sudo apt-get install -y libicu-dev ;;
+            esac
+            case "${missing_deps[*]}" in
+                *sqlite3*) sudo apt-get install -y sqlite3 ;;
+            esac
+            case "${missing_deps[*]}" in
+                *pkg-config*) sudo apt-get install -y pkg-config ;;
+            esac
+            ;;
+        centos|rhel|fedora)
+            if command_exists dnf; then
+                PKG_MGR="dnf"
+            else
+                PKG_MGR="yum"
+            fi
+            case "${missing_deps[*]}" in
+                *gcc*) sudo $PKG_MGR install -y gcc make ;;
+            esac
+            case "${missing_deps[*]}" in
+                *libicu-dev*) sudo $PKG_MGR install -y libicu-devel ;;
+            esac
+            case "${missing_deps[*]}" in
+                *sqlite3*) sudo $PKG_MGR install -y sqlite ;;
+            esac
+            case "${missing_deps[*]}" in
+                *pkg-config*) sudo $PKG_MGR install -y pkgconfig ;;
+            esac
+            ;;
+        arch)
+            case "${missing_deps[*]}" in
+                *gcc*) sudo pacman -S --noconfirm base-devel ;;
+            esac
+            case "${missing_deps[*]}" in
+                *libicu-dev*) sudo pacman -S --noconfirm icu ;;
+            esac
+            case "${missing_deps[*]}" in
+                *sqlite3*) sudo pacman -S --noconfirm sqlite ;;
+            esac
+            case "${missing_deps[*]}" in
+                *pkg-config*) sudo pacman -S --noconfirm pkgconf ;;
+            esac
+            ;;
+        darwin)
+            if ! command_exists brew; then
+                print_error "Homebrew not found. Please install Homebrew first:"
+                echo "  /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
+                return 1
+            fi
+            case "${missing_deps[*]}" in
+                *gcc*) brew install gcc ;;
+            esac
+            case "${missing_deps[*]}" in
+                *libicu-dev*) brew install icu4c ;;
+            esac
+            case "${missing_deps[*]}" in
+                *sqlite3*) brew install sqlite ;;
+            esac
+            case "${missing_deps[*]}" in
+                *pkg-config*) brew install pkg-config ;;
+            esac
+            ;;
+        *)
+            print_error "Unsupported OS: $OS"
+            print_info "Please install dependencies manually:"
+            echo "  - C compiler (gcc/clang)"
+            echo "  - make"
+            echo "  - pkg-config"  
+            echo "  - sqlite3"
+            echo "  - ICU development libraries"
+            return 1
+            ;;
+    esac
+    
+    print_success "Dependencies installed successfully"
+}
+
 # Function to check dependencies
 check_dependencies() {
     print_info "Checking dependencies..."
     
+    # Detect OS first
+    detect_os
+    
     # Check for required tools
     local missing_deps=()
     
-    if ! command_exists gcc; then
+    if ! command_exists gcc && ! command_exists clang; then
         missing_deps+=("gcc")
     fi
     
@@ -65,11 +177,34 @@ check_dependencies() {
     fi
     
     if [ ${#missing_deps[@]} -ne 0 ]; then
-        print_error "Missing dependencies: ${missing_deps[*]}"
-        print_info "On Ubuntu/Debian, install with:"
-        echo "  sudo apt-get update"
-        echo "  sudo apt-get install build-essential libicu-dev sqlite3"
-        return 1
+        print_warning "Missing dependencies: ${missing_deps[*]}"
+        
+        # Ask user if they want automatic installation
+        echo ""
+        read -p "Install missing dependencies automatically? [Y/n]: " -n 1 -r
+        echo ""
+        
+        if [[ $REPLY =~ ^[Nn]$ ]]; then
+            print_info "Manual installation required:"
+            case "$OS" in
+                ubuntu|debian)
+                    echo "  sudo apt-get update"
+                    echo "  sudo apt-get install build-essential libicu-dev sqlite3 pkg-config"
+                    ;;
+                centos|rhel|fedora)
+                    echo "  sudo yum install gcc make libicu-devel sqlite pkgconfig"
+                    ;;
+                arch)
+                    echo "  sudo pacman -S base-devel icu sqlite pkgconf"
+                    ;;
+                darwin)
+                    echo "  brew install gcc icu4c sqlite pkg-config"
+                    ;;
+            esac
+            return 1
+        else
+            install_dependencies "${missing_deps[@]}" || return 1
+        fi
     fi
     
     print_success "All dependencies are satisfied"

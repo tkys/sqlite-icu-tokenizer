@@ -14,9 +14,23 @@ A SQLite FTS5 extension that provides International Components for Unicode (ICU)
 
 ## Quick Start
 
-### Option 1: Download Pre-built Binary (Recommended)
+### 🚀 Option 1: One-Line Installation (Recommended)
 
-**No build tools required!** Download the appropriate binary for your platform:
+**Automatic build and installation for your environment:**
+```bash
+curl -sSL https://raw.githubusercontent.com/tkys/sqlite-icu-tokenizer/master/install.sh | bash
+```
+
+This script will:
+- ✅ Detect your OS and package manager automatically  
+- ✅ Install dependencies (with your permission)
+- ✅ Build with your system's ICU version (no compatibility issues)
+- ✅ Install system-wide and verify functionality
+- ✅ Create a convenient `sqlite3-icu` command
+
+### 📦 Option 2: Pre-built Binaries (Fallback)
+
+**⚠️ Note:** May have ICU version compatibility issues. Use Option 1 if possible.
 
 **Linux (x86_64):**
 ```bash
