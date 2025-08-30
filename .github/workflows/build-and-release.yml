@@ -40,11 +40,6 @@ jobs:
             cc: clang
             
           # Windows builds
-          - os: windows-2019
-            platform: win32
-            arch: x86_64
-            extension: dll
-            cc: gcc
           - os: windows-2022
             platform: win32
             arch: x86_64
@@ -65,9 +60,19 @@ jobs:
       if: runner.os == 'macOS'
       run: |
         brew install icu4c wget pkg-config
-        echo "PKG_CONFIG_PATH=/usr/local/opt/icu4c/lib/pkgconfig:$PKG_CONFIG_PATH" >> $GITHUB_ENV
-        echo "LDFLAGS=-L/usr/local/opt/icu4c/lib" >> $GITHUB_ENV
-        echo "CPPFLAGS=-I/usr/local/opt/icu4c/include" >> $GITHUB_ENV
+        
+        # Get ICU installation path
+        ICU_PATH=$(brew --prefix icu4c)
+        echo "ICU_PATH=$ICU_PATH" >> $GITHUB_ENV
+        echo "PKG_CONFIG_PATH=$ICU_PATH/lib/pkgconfig:$PKG_CONFIG_PATH" >> $GITHUB_ENV
+        echo "LDFLAGS=-L$ICU_PATH/lib" >> $GITHUB_ENV
+        echo "CPPFLAGS=-I$ICU_PATH/include" >> $GITHUB_ENV
+        echo "ICU_CFLAGS=-I$ICU_PATH/include" >> $GITHUB_ENV
+        echo "ICU_LIBS=-L$ICU_PATH/lib -licuuc -licui18n" >> $GITHUB_ENV
+        
+        # Debug: Show ICU installation
+        echo "ICU installed at: $ICU_PATH"
+        ls -la $ICU_PATH/include/unicode/ | head -5 || echo "Unicode headers not found"
 
     - name: Setup build dependencies (Windows)
       if: runner.os == 'Windows'
@@ -106,7 +111,22 @@ jobs:
       if: runner.os != 'Windows'
       run: |
         make clean
-        make CC=${{ matrix.cc }} PLATFORM=${{ matrix.platform }}
+        
+        # Use pkg-config for ICU flags if available, otherwise use environment variables
+        if pkg-config --exists icu-uc icu-i18n; then
+          ICU_CFLAGS=$(pkg-config --cflags icu-uc icu-i18n)
+          ICU_LIBS=$(pkg-config --libs icu-uc icu-i18n)
+          echo "Using pkg-config ICU flags: $ICU_CFLAGS $ICU_LIBS"
+        else
+          echo "Using environment ICU flags: $ICU_CFLAGS $ICU_LIBS"
+        fi
+        
+        # Build with explicit ICU flags
+        ${{ matrix.cc }} -fPIC -shared -O2 -Wall -o fts5icu.${{ matrix.extension }} fts5icu.c \
+          -I./sqlite-amalgamation-3500400 -I. \
+          -DSQLITE_ENABLE_FTS5 \
+          ${ICU_CFLAGS:-$CPPFLAGS} \
+          ${ICU_LIBS:-$LDFLAGS -licuuc -licui18n}
         
         # Create output with platform identifier
         output_name="fts5icu-${{ matrix.platform }}-${{ matrix.arch }}.${{ matrix.extension }}"
