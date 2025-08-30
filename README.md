@@ -9,42 +9,75 @@ A SQLite FTS5 extension that provides International Components for Unicode (ICU)
 - **FTS5 Integration**: Seamlessly integrates with SQLite's FTS5 full-text search
 - **Full FTS5 Compatibility**: Supports 98% of FTS5 advanced features (ranking, highlighting, snippets, etc.)
 - **Lightweight**: Minimal dependencies, suitable for edge computing and embedded applications
-- **Easy to Build**: Simple build process with standard tools
+- **Ready-to-Use Binaries**: Pre-built binaries available for all major platforms
+- **Easy Installation**: No build tools required - just download and use
 
 ## Quick Start
 
-### Prerequisites
+### Option 1: Download Pre-built Binary (Recommended)
+
+**No build tools required!** Download the appropriate binary for your platform:
+
+**Linux (x86_64):**
+```bash
+wget https://github.com/tkys/sqlite-icu-tokenizer/releases/latest/download/fts5icu-linux-x86_64.so
+```
+
+**macOS (Intel):**
+```bash
+wget https://github.com/tkys/sqlite-icu-tokenizer/releases/latest/download/fts5icu-darwin-x86_64.dylib
+```
+
+**macOS (Apple Silicon):**
+```bash
+wget https://github.com/tkys/sqlite-icu-tokenizer/releases/latest/download/fts5icu-darwin-arm64.dylib
+```
+
+**Windows (x86_64):**
+```powershell
+# Download from: https://github.com/tkys/sqlite-icu-tokenizer/releases/latest/download/fts5icu-win32-x86_64.dll
+```
+
+**Prerequisites for binary usage:**
+- SQLite 3.35+ with FTS5 support
+- ICU libraries installed:
+  - **Ubuntu/Debian:** `sudo apt-get install libicu-dev sqlite3`
+  - **CentOS/RHEL:** `sudo dnf install libicu sqlite`
+  - **macOS:** `brew install icu4c sqlite`
+  - **Windows:** Install ICU libraries via vcpkg or system package manager
+
+### Option 2: Build from Source (Advanced)
+
+<details>
+<summary>Click to expand build instructions</summary>
 
 **Required tools:**
-- GCC compiler
+- GCC compiler or Clang
 - Make build system  
 - wget (for downloading SQLite source)
 - unzip (for extracting archives)
-- ICU libraries (libicuuc, libicui18n)
-- SQLite 3.35+ with FTS5 support
+- ICU development libraries
 
-**Install on Ubuntu/Debian:**
+**Install dependencies:**
+
+**Ubuntu/Debian:**
 ```bash
 sudo apt-get update
 sudo apt-get install build-essential libicu-dev sqlite3 wget unzip
 ```
 
-**Install on CentOS/RHEL:**
+**CentOS/RHEL:**
 ```bash
-sudo yum install gcc make libicu-devel sqlite wget unzip
-# or on newer versions:
 sudo dnf install gcc make libicu-devel sqlite wget unzip
 ```
 
-**Install on macOS:**
+**macOS:**
 ```bash
-# Using Homebrew
-brew install icu4c sqlite wget
-# You may need to set PKG_CONFIG_PATH
+brew install icu4c sqlite wget pkg-config
 export PKG_CONFIG_PATH="/usr/local/opt/icu4c/lib/pkgconfig:$PKG_CONFIG_PATH"
 ```
 
-### Building
+**Build steps:**
 
 1. **Clone this repository**:
    ```bash
@@ -54,33 +87,37 @@ export PKG_CONFIG_PATH="/usr/local/opt/icu4c/lib/pkgconfig:$PKG_CONFIG_PATH"
 
 2. **Download SQLite source** (one-time setup):
    ```bash
-   # Option 1: Direct download
    wget https://sqlite.org/2025/sqlite-amalgamation-3500400.zip
    unzip sqlite-amalgamation-3500400.zip
-   
-   # Option 2: From SQLite website
-   # Visit https://sqlite.org/download.html
-   # Download sqlite-amalgamation-3500400.zip (2.7MB)
-   # Extract in project directory
    ```
 
 3. **Build the extension**:
    ```bash
    make
    ```
-   
-   If SQLite source is missing, the build will show helpful download instructions.
 
-4. **Run tests** to verify everything works:
+4. **Run tests**:
    ```bash
    make test
    ```
 
+</details>
+
 ### Usage
 
-1. **Load the extension** in SQLite:
+1. **Load the extension** in SQLite (use your downloaded binary):
    ```sql
-   .load ./fts5icu.so sqlite3_icufts5_init
+   -- Linux
+   .load ./fts5icu-linux-x86_64.so sqlite3_icufts5_init
+   
+   -- macOS (Intel)
+   .load ./fts5icu-darwin-x86_64.dylib sqlite3_icufts5_init
+   
+   -- macOS (Apple Silicon)  
+   .load ./fts5icu-darwin-arm64.dylib sqlite3_icufts5_init
+   
+   -- Windows
+   .load ./fts5icu-win32-x86_64.dll sqlite3_icufts5_init
    ```
 
 2. **Create a table** with ICU tokenizer:

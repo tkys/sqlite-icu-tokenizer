@@ -9,42 +9,75 @@ SQLiteのFTS5フルテキスト検索に対して、ICU（International Componen
 - **FTS5統合**: SQLiteのFTS5フルテキスト検索とシームレスに統合
 - **FTS5機能完全対応**: FTS5の高度な機能の98%をサポート（ランキング、ハイライト、スニペット等）
 - **軽量**: 最小限の依存関係でエッジコンピューティングや組み込みアプリケーションに適合
-- **簡単ビルド**: 標準ツールでのシンプルなビルドプロセス
+- **すぐ使えるバイナリ**: 主要プラットフォーム用のビルド済みバイナリを提供
+- **簡単インストール**: ビルドツール不要 - ダウンロードして即利用可能
 
 ## クイックスタート
 
-### 必要なツール
+### 方法1: ビルド済みバイナリのダウンロード（推奨）
 
-**必須ツール:**
-- GCCコンパイラ
-- Makeビルドシステム
-- wget（SQLiteソースのダウンロード用）
-- unzip（アーカイブ展開用）
-- ICUライブラリ（libicuuc、libicui18n）
+**ビルドツール不要！**お使いのプラットフォーム用のバイナリをダウンロードしてください：
+
+**Linux (x86_64):**
+```bash
+wget https://github.com/tkys/sqlite-icu-tokenizer/releases/latest/download/fts5icu-linux-x86_64.so
+```
+
+**macOS (Intel):**
+```bash
+wget https://github.com/tkys/sqlite-icu-tokenizer/releases/latest/download/fts5icu-darwin-x86_64.dylib
+```
+
+**macOS (Apple Silicon):**
+```bash
+wget https://github.com/tkys/sqlite-icu-tokenizer/releases/latest/download/fts5icu-darwin-arm64.dylib
+```
+
+**Windows (x86_64):**
+```powershell
+# 以下からダウンロード: https://github.com/tkys/sqlite-icu-tokenizer/releases/latest/download/fts5icu-win32-x86_64.dll
+```
+
+**バイナリ使用の前提条件:**
 - SQLite 3.35以上（FTS5サポート）
+- ICUライブラリのインストール:
+  - **Ubuntu/Debian:** `sudo apt-get install libicu-dev sqlite3`
+  - **CentOS/RHEL:** `sudo dnf install libicu sqlite`
+  - **macOS:** `brew install icu4c sqlite`
+  - **Windows:** vcpkgまたはシステムパッケージマネージャーでICUライブラリをインストール
 
-**Ubuntu/Debianでのインストール:**
+### 方法2: ソースからビルド（上級者向け）
+
+<details>
+<summary>ビルド手順を展開</summary>
+
+**必要なツール:**
+- GCCコンパイラまたはClang
+- Makeビルドシステム
+- wget（SQLiteソースダウンロード用）
+- unzip（アーカイブ展開用）
+- ICU開発ライブラリ
+
+**依存関係のインストール:**
+
+**Ubuntu/Debian:**
 ```bash
 sudo apt-get update
 sudo apt-get install build-essential libicu-dev sqlite3 wget unzip
 ```
 
-**CentOS/RHELでのインストール:**
+**CentOS/RHEL:**
 ```bash
-sudo yum install gcc make libicu-devel sqlite wget unzip
-# または新しいバージョンでは:
 sudo dnf install gcc make libicu-devel sqlite wget unzip
 ```
 
-**macOSでのインストール:**
+**macOS:**
 ```bash
-# Homebrewを使用
-brew install icu4c sqlite wget
-# PKG_CONFIG_PATHの設定が必要な場合があります
+brew install icu4c sqlite wget pkg-config
 export PKG_CONFIG_PATH="/usr/local/opt/icu4c/lib/pkgconfig:$PKG_CONFIG_PATH"
 ```
 
-### ビルド方法
+**ビルド手順:**
 
 1. **リポジトリのクローン**:
    ```bash
@@ -54,33 +87,37 @@ export PKG_CONFIG_PATH="/usr/local/opt/icu4c/lib/pkgconfig:$PKG_CONFIG_PATH"
 
 2. **SQLiteソースのダウンロード**（初回のみ）:
    ```bash
-   # オプション1: 直接ダウンロード
    wget https://sqlite.org/2025/sqlite-amalgamation-3500400.zip
    unzip sqlite-amalgamation-3500400.zip
-   
-   # オプション2: SQLiteウェブサイトから
-   # https://sqlite.org/download.html にアクセス
-   # sqlite-amalgamation-3500400.zip（2.7MB）をダウンロード
-   # プロジェクトディレクトリで展開
    ```
 
 3. **拡張のビルド**:
    ```bash
    make
    ```
-   
-   SQLiteソースが見つからない場合、ビルド時に親切なダウンロード手順が表示されます。
 
-4. **動作確認テスト**:
+4. **テストの実行**:
    ```bash
    make test
    ```
 
+</details>
+
 ### 使用方法
 
-1. **SQLiteで拡張をロード**:
+1. **SQLiteで拡張をロード**（ダウンロードしたバイナリを使用）:
    ```sql
-   .load ./fts5icu.so sqlite3_icufts5_init
+   -- Linux
+   .load ./fts5icu-linux-x86_64.so sqlite3_icufts5_init
+   
+   -- macOS (Intel)
+   .load ./fts5icu-darwin-x86_64.dylib sqlite3_icufts5_init
+   
+   -- macOS (Apple Silicon)
+   .load ./fts5icu-darwin-arm64.dylib sqlite3_icufts5_init
+   
+   -- Windows
+   .load ./fts5icu-win32-x86_64.dll sqlite3_icufts5_init
    ```
 
 2. **ICUトークナイザでテーブルを作成**:
