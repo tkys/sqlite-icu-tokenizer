@@ -51,8 +51,21 @@ jobs:
       run: |
         brew install icu4c wget pkg-config
         
-        # Get ICU installation path
-        ICU_PATH=$(brew --prefix icu4c)
+        # Get ICU installation path - try multiple versions
+        ICU_PATH=""
+        for version in icu4c@77 icu4c@76 icu4c; do
+          if brew list $version &>/dev/null; then
+            ICU_PATH=$(brew --prefix $version)
+            echo "Found ICU at: $ICU_PATH"
+            break
+          fi
+        done
+        
+        if [ -z "$ICU_PATH" ]; then
+          echo "ICU not found, trying default icu4c"
+          ICU_PATH=$(brew --prefix icu4c)
+        fi
+        
         echo "ICU_PATH=$ICU_PATH" >> $GITHUB_ENV
         echo "PKG_CONFIG_PATH=$ICU_PATH/lib/pkgconfig:$PKG_CONFIG_PATH" >> $GITHUB_ENV
         echo "LDFLAGS=-L$ICU_PATH/lib" >> $GITHUB_ENV
@@ -62,14 +75,28 @@ jobs:
         
         # Debug: Show ICU installation
         echo "ICU installed at: $ICU_PATH"
-        ls -la $ICU_PATH/include/unicode/ | head -5 || echo "Unicode headers not found"
+        ls -la $ICU_PATH/include/unicode/ | head -10 || echo "Unicode headers not found"
+        pkg-config --cflags icu-uc icu-i18n || echo "pkg-config failed"
 
     - name: Setup build dependencies (Windows)
       if: runner.os == 'Windows'
       run: |
-        # Use vcpkg for ICU on Windows
-        vcpkg install icu:x64-windows
-        echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" >> $env:GITHUB_ENV
+        # Use pre-installed ICU from vcpkg or install if needed
+        $vcpkgRoot = $env:VCPKG_INSTALLATION_ROOT
+        echo "VCPKG_ROOT=$vcpkgRoot" >> $env:GITHUB_ENV
+        
+        # Check if ICU is already installed
+        $icuInstalled = Test-Path "$vcpkgRoot\installed\x64-windows\include\unicode\ubrk.h"
+        if (-not $icuInstalled) {
+          echo "Installing ICU via vcpkg..."
+          vcpkg install icu:x64-windows
+        } else {
+          echo "ICU already available in vcpkg"
+        }
+        
+        # Set ICU paths
+        echo "ICU_INCLUDE_PATH=$vcpkgRoot\installed\x64-windows\include" >> $env:GITHUB_ENV
+        echo "ICU_LIB_PATH=$vcpkgRoot\installed\x64-windows\lib" >> $env:GITHUB_ENV
       
     - name: Download SQLite Amalgamation
       run: |
@@ -111,12 +138,18 @@ jobs:
           echo "Using environment ICU flags: $ICU_CFLAGS $ICU_LIBS"
         fi
         
-        # Build with explicit ICU flags
-        ${{ matrix.cc }} -fPIC -shared -O2 -Wall -o fts5icu.${{ matrix.extension }} fts5icu.c \
+        # Build with explicit ICU flags and error handling
+        if ! ${{ matrix.cc }} -fPIC -shared -O2 -Wall -o fts5icu.${{ matrix.extension }} fts5icu.c \
           -I./sqlite-amalgamation-3500400 -I. \
           -DSQLITE_ENABLE_FTS5 \
           ${ICU_CFLAGS:-$CPPFLAGS} \
-          ${ICU_LIBS:-$LDFLAGS -licuuc -licui18n}
+          ${ICU_LIBS:-$LDFLAGS -licuuc -licui18n}; then
+          echo "Build failed, showing debug info:"
+          echo "ICU_CFLAGS: ${ICU_CFLAGS:-$CPPFLAGS}"  
+          echo "ICU_LIBS: ${ICU_LIBS:-$LDFLAGS -licuuc -licui18n}"
+          ls -la sqlite-amalgamation-3500400/ || echo "SQLite dir not found"
+          exit 1
+        fi
         
         # Create output with platform identifier
         output_name="fts5icu-${{ matrix.platform }}-${{ matrix.arch }}.${{ matrix.extension }}"
@@ -128,19 +161,30 @@ jobs:
     - name: Build extension (Windows)
       if: runner.os == 'Windows'
       run: |
-        # Windows build with vcpkg
-        gcc -fPIC -shared -O2 -Wall -o fts5icu.dll fts5icu.c `
-          -I./sqlite-amalgamation-3500400 `
-          -I"$env:VCPKG_INSTALLATION_ROOT/installed/x64-windows/include" `
-          -L"$env:VCPKG_INSTALLATION_ROOT/installed/x64-windows/lib" `
-          -DSQLITE_ENABLE_FTS5 -licuuc -licui18n
+        # Windows build with vcpkg ICU
+        $vcpkgRoot = $env:VCPKG_ROOT
+        $includeDir = "$vcpkgRoot\installed\x64-windows\include"
+        $libDir = "$vcpkgRoot\installed\x64-windows\lib"
+        
+        echo "Building with ICU from: $includeDir"
+        echo "Library path: $libDir"
+        
+        # Use cl.exe (MSVC) instead of gcc for better Windows compatibility
+        cl.exe /LD /O2 /I".\sqlite-amalgamation-3500400" /I"$includeDir" `
+          /DSQLITE_ENABLE_FTS5 /DSQLITE_API= /DSQLITE_EXTERN= `
+          fts5icu.c "$libDir\icuuc.lib" "$libDir\icui18n.lib" `
+          /Fefts5icu.dll
         
         # Create output with platform identifier
         $output_name = "fts5icu-${{ matrix.platform }}-${{ matrix.arch }}.${{ matrix.extension }}"
-        Copy-Item fts5icu.${{ matrix.extension }} $output_name
-        Get-ChildItem $output_name
+        if (Test-Path "fts5icu.dll") {
+          Copy-Item fts5icu.dll $output_name
+          Get-ChildItem $output_name
+        } else {
+          echo "Build failed - fts5icu.dll not created"
+          exit 1
+        }
       shell: pwsh
-      continue-on-error: true
 
     - name: Test extension
       if: runner.os != 'Windows'

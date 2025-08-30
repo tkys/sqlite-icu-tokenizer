@@ -4,6 +4,7 @@ SQLITE_EXTENSION_INIT1
 #include <unicode/ubrk.h>
 #include <unicode/utext.h>
 #include <unicode/ustring.h>
+#include <unicode/ustdio.h>
 #include <string.h>
 #include <stdlib.h>
 
