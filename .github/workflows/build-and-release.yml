@@ -78,6 +78,10 @@ jobs:
         ls -la $ICU_PATH/include/unicode/ | head -10 || echo "Unicode headers not found"
         pkg-config --cflags icu-uc icu-i18n || echo "pkg-config failed"
 
+    - name: Setup MSVC (Windows)
+      if: runner.os == 'Windows'
+      uses: microsoft/setup-msbuild@v2
+
     - name: Setup build dependencies (Windows)
       if: runner.os == 'Windows'
       run: |
@@ -161,30 +165,33 @@ jobs:
     - name: Build extension (Windows)
       if: runner.os == 'Windows'
       run: |
+        # Initialize MSVC environment
+        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        
         # Windows build with vcpkg ICU
-        $vcpkgRoot = $env:VCPKG_ROOT
-        $includeDir = "$vcpkgRoot\installed\x64-windows\include"
-        $libDir = "$vcpkgRoot\installed\x64-windows\lib"
+        set VCPKG_ROOT=%VCPKG_INSTALLATION_ROOT%
+        set INCLUDE_DIR=%VCPKG_ROOT%\installed\x64-windows\include
+        set LIB_DIR=%VCPKG_ROOT%\installed\x64-windows\lib
         
-        echo "Building with ICU from: $includeDir"
-        echo "Library path: $libDir"
+        echo Building with ICU from: %INCLUDE_DIR%
+        echo Library path: %LIB_DIR%
         
-        # Use cl.exe (MSVC) instead of gcc for better Windows compatibility
-        cl.exe /LD /O2 /I".\sqlite-amalgamation-3500400" /I"$includeDir" `
-          /DSQLITE_ENABLE_FTS5 /DSQLITE_API= /DSQLITE_EXTERN= `
-          fts5icu.c "$libDir\icuuc.lib" "$libDir\icui18n.lib" `
+        # Use MSVC compiler
+        cl.exe /LD /O2 /I".\sqlite-amalgamation-3500400" /I"%INCLUDE_DIR%" ^
+          /DSQLITE_ENABLE_FTS5 /DSQLITE_API= /DSQLITE_EXTERN= ^
+          fts5icu.c "%LIB_DIR%\icuuc.lib" "%LIB_DIR%\icui18n.lib" ^
           /Fefts5icu.dll
         
         # Create output with platform identifier
-        $output_name = "fts5icu-${{ matrix.platform }}-${{ matrix.arch }}.${{ matrix.extension }}"
-        if (Test-Path "fts5icu.dll") {
-          Copy-Item fts5icu.dll $output_name
-          Get-ChildItem $output_name
-        } else {
-          echo "Build failed - fts5icu.dll not created"
-          exit 1
-        }
-      shell: pwsh
+        set OUTPUT_NAME=fts5icu-${{ matrix.platform }}-${{ matrix.arch }}.${{ matrix.extension }}
+        if exist fts5icu.dll (
+          copy fts5icu.dll %OUTPUT_NAME%
+          dir %OUTPUT_NAME%
+        ) else (
+          echo Build failed - fts5icu.dll not created
+          exit /b 1
+        )
+      shell: cmd
 
     - name: Test extension
       if: runner.os != 'Windows'
