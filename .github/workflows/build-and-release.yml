@@ -165,10 +165,8 @@ jobs:
     - name: Build extension (Windows)
       if: runner.os == 'Windows'
       run: |
-        # Initialize MSVC environment
         call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
         
-        # Windows build with vcpkg ICU
         set VCPKG_ROOT=%VCPKG_INSTALLATION_ROOT%
         set INCLUDE_DIR=%VCPKG_ROOT%\installed\x64-windows\include
         set LIB_DIR=%VCPKG_ROOT%\installed\x64-windows\lib
@@ -176,13 +174,15 @@ jobs:
         echo Building with ICU from: %INCLUDE_DIR%
         echo Library path: %LIB_DIR%
         
-        # Use MSVC compiler
+        REM Check available ICU libraries
+        dir "%LIB_DIR%\icu*.lib"
+        
+        REM Use MSVC compiler with correct ICU library names
         cl.exe /LD /O2 /I".\sqlite-amalgamation-3500400" /I"%INCLUDE_DIR%" ^
           /DSQLITE_ENABLE_FTS5 /DSQLITE_API= /DSQLITE_EXTERN= ^
-          fts5icu.c "%LIB_DIR%\icuuc.lib" "%LIB_DIR%\icui18n.lib" ^
+          fts5icu.c "%LIB_DIR%\icuuc77.lib" "%LIB_DIR%\icuin77.lib" ^
           /Fefts5icu.dll
         
-        # Create output with platform identifier
         set OUTPUT_NAME=fts5icu-${{ matrix.platform }}-${{ matrix.arch }}.${{ matrix.extension }}
         if exist fts5icu.dll (
           copy fts5icu.dll %OUTPUT_NAME%
